@@ -1,70 +1,75 @@
-"""Formats cron expressions and their next-run previews into structured output."""
+"""Summarize a cron expression into a structured CronSummary object."""
 
-from dataclasses import dataclass
-from datetime import datetime
+from dataclasses import dataclass, field
 from typing import List, Optional
+import json
 
 from cronparse.parser import CronExpression
+from cronparse.validator import validate
 from cronparse.humanize import humanize
 from cronparse.next_run import next_run
-from cronparse.validator import validate
+from cronparse.exceptions import CronParseError
 
 
 @dataclass
 class CronSummary:
-    """Structured summary of a cron expression."""
     expression: str
-    description: str
     is_valid: bool
-    validation_message: str
-    next_runs: List[datetime]
+    human_readable: Optional[str]
+    next_runs: List[str]
+    error: Optional[str] = None
 
     def to_dict(self) -> dict:
         return {
             "expression": self.expression,
-            "description": self.description,
             "is_valid": self.is_valid,
-            "validation_message": self.validation_message,
-            "next_runs": [dt.isoformat() for dt in self.next_runs],
+            "human_readable": self.human_readable,
+            "next_runs": self.next_runs,
+            "error": self.error,
         }
 
     def __str__(self) -> str:
         lines = [
             f"Expression : {self.expression}",
-            f"Description: {self.description}",
             f"Valid      : {self.is_valid}",
         ]
-        if not self.is_valid:
-            lines.append(f"Error      : {self.validation_message}")
+        if self.error:
+            lines.append(f"Error      : {self.error}")
+        if self.human_readable:
+            lines.append(f"Description: {self.human_readable}")
         if self.next_runs:
             lines.append("Next runs  :")
-            for dt in self.next_runs:
-                lines.append(f"  - {dt.strftime('%Y-%m-%d %H:%M')}")
+            for run in self.next_runs:
+                lines.append(f"  - {run}")
         return "\n".join(lines)
 
 
-def summarize(
-    expression: str,
-    from_dt: Optional[datetime] = None,
-    count: int = 5,
-) -> CronSummary:
-    """Return a CronSummary for the given cron expression string."""
+def summarize(expression: str, count: int = 5) -> CronSummary:
+    """Build a CronSummary for the given cron expression."""
     result = validate(expression)
-    description = ""
-    runs: List[datetime] = []
+    if not result.is_valid:
+        return CronSummary(
+            expression=expression,
+            is_valid=False,
+            human_readable=None,
+            next_runs=[],
+            error=str(result),
+        )
 
-    if result.valid:
-        try:
-            parsed = CronExpression(expression)
-            description = humanize(parsed)
-            runs = next_run(parsed, from_dt=from_dt, count=count)
-        except Exception as exc:  # pragma: no cover
-            description = "(error generating description)"
+    try:
+        description = humanize(expression)
+    except Exception as exc:  # pragma: no cover
+        description = None
+
+    try:
+        runs = next_run(expression, count=count)
+        formatted_runs = [dt.strftime("%Y-%m-%d %H:%M") for dt in runs]
+    except Exception:  # pragma: no cover
+        formatted_runs = []
 
     return CronSummary(
         expression=expression,
-        description=description,
-        is_valid=result.valid,
-        validation_message=str(result),
-        next_runs=runs,
+        is_valid=True,
+        human_readable=description,
+        next_runs=formatted_runs,
     )
