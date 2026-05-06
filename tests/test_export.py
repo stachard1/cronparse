@@ -12,10 +12,16 @@ EXPR_DAILY = "0 9 * * *"
 
 
 def _make_history() -> CronHistory:
+    """Return a CronHistory with two entries for use in tests."""
     h = CronHistory()
     h.add(EXPR_WILDCARD, label="every minute")
     h.add(EXPR_DAILY)
     return h
+
+
+def _csv_rows(output: str) -> list[list[str]]:
+    """Parse CSV output into a list of rows, including the header."""
+    return list(csv.reader(io.StringIO(output)))
 
 
 class TestToCsv:
@@ -24,39 +30,34 @@ class TestToCsv:
 
     def test_header_row_present(self):
         output = to_csv(_make_history())
-        reader = csv.reader(io.StringIO(output))
-        header = next(reader)
+        header = _csv_rows(output)[0]
         assert header == ["expression", "label", "added_at", "description"]
 
     def test_correct_number_of_data_rows(self):
         output = to_csv(_make_history())
-        rows = list(csv.reader(io.StringIO(output)))
+        rows = _csv_rows(output)
         assert len(rows) == 3  # header + 2 entries
 
     def test_expression_column_correct(self):
         output = to_csv(_make_history())
-        rows = list(csv.reader(io.StringIO(output)))
-        expressions = [r[0] for r in rows[1:]]
+        expressions = [r[0] for r in _csv_rows(output)[1:]]
         assert EXPR_WILDCARD in expressions
         assert EXPR_DAILY in expressions
 
     def test_label_column_populated(self):
         output = to_csv(_make_history())
-        rows = list(csv.reader(io.StringIO(output)))
-        labels = {r[0]: r[1] for r in rows[1:]}
+        labels = {r[0]: r[1] for r in _csv_rows(output)[1:]}
         assert labels[EXPR_WILDCARD] == "every minute"
         assert labels[EXPR_DAILY] == ""
 
     def test_description_column_present_when_human_true(self):
         output = to_csv(_make_history(), human=True)
-        rows = list(csv.reader(io.StringIO(output)))
-        descriptions = [r[3] for r in rows[1:]]
+        descriptions = [r[3] for r in _csv_rows(output)[1:]]
         assert all(d != "" for d in descriptions)
 
     def test_description_column_empty_when_human_false(self):
         output = to_csv(_make_history(), human=False)
-        rows = list(csv.reader(io.StringIO(output)))
-        descriptions = [r[3] for r in rows[1:]]
+        descriptions = [r[3] for r in _csv_rows(output)[1:]]
         assert all(d == "" for d in descriptions)
 
 
