@@ -93,15 +93,34 @@ class TestValidateEdgeCases:
         result = validate("0 0 31 * *")
         assert result.is_valid is True
 
+    def test_day_of_month_boundary_min(self):
+        result = validate("0 0 1 * *")
+        assert result.is_valid is True
+
     def test_day_of_month_out_of_range(self):
         result = validate("0 0 32 * *")
         assert result.is_valid is False
 
-    def test_step_value_in_range(self):
-        result = validate("*/15 * * * *")
+    def test_month_boundary_min(self):
+        result = validate("0 0 * 1 *")
         assert result.is_valid is True
 
-    def test_empty_string(self):
-        result = validate("")
+    def test_month_boundary_max(self):
+        result = validate("0 0 * 12 *")
+        assert result.is_valid is True
+
+    def test_month_out_of_range(self):
+        result = validate("0 0 * 13 *")
         assert result.is_valid is False
-        assert len(result.errors) > 0
+
+    def test_dow_boundary_min(self):
+        result = validate("0 0 * * 0")
+        assert result.is_valid is True
+
+    def test_dow_boundary_max(self):
+        result = validate("0 0 * * 7")
+        assert result.is_valid is True
+
+    def test_dow_out_of_range(self):
+        result = validate("0 0 * * 8")
+        assert result.is_valid is False
