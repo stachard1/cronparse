@@ -68,3 +68,40 @@ class TestValidate:
         result = ValidationResult(is_valid=True, errors=[], warnings=["test"])
         assert result.is_valid is True
         assert result.warnings == ["test"]
+
+
+class TestValidateEdgeCases:
+    """Tests for boundary values and edge cases in cron field validation."""
+
+    def test_minute_boundary_zero(self):
+        result = validate("0 * * * *")
+        assert result.is_valid is True
+
+    def test_minute_boundary_max(self):
+        result = validate("59 * * * *")
+        assert result.is_valid is True
+
+    def test_hour_boundary_zero(self):
+        result = validate("0 0 * * *")
+        assert result.is_valid is True
+
+    def test_hour_boundary_max(self):
+        result = validate("0 23 * * *")
+        assert result.is_valid is True
+
+    def test_day_of_month_boundary_max(self):
+        result = validate("0 0 31 * *")
+        assert result.is_valid is True
+
+    def test_day_of_month_out_of_range(self):
+        result = validate("0 0 32 * *")
+        assert result.is_valid is False
+
+    def test_step_value_in_range(self):
+        result = validate("*/15 * * * *")
+        assert result.is_valid is True
+
+    def test_empty_string(self):
+        result = validate("")
+        assert result.is_valid is False
+        assert len(result.errors) > 0
