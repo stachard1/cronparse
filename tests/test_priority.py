@@ -34,6 +34,11 @@ class TestPriorityQueue:
         entry = q.add("* * * * *", level=PriorityLevel.HIGH)
         assert entry.level == PriorityLevel.HIGH
 
+    def test_add_default_level_is_normal(self):
+        q = self._make()
+        entry = q.add("* * * * *")
+        assert entry.level == PriorityLevel.NORMAL
+
     def test_get_returns_all_entries(self):
         q = self._make()
         q.add("* * * * *")
@@ -55,6 +60,12 @@ class TestPriorityQueue:
         result = q.get(level=PriorityLevel.HIGH)
         assert len(result) == 1
         assert result[0].level == PriorityLevel.HIGH
+
+    def test_get_filter_by_level_no_match_returns_empty(self):
+        q = self._make()
+        q.add("* * * * *", level=PriorityLevel.LOW)
+        result = q.get(level=PriorityLevel.CRITICAL)
+        assert result == []
 
     def test_remove_existing_entry(self):
         q = self._make()
