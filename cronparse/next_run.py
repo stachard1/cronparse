@@ -69,6 +69,11 @@ def next_run(
         results.append(current)
         current += timedelta(minutes=1)
 
+    if len(results) < count:
+        raise CronParseError(
+            f"Could not find {count} run(s) within 4 years for expression: {expression!r}"
+        )
+
     return results
 
 
