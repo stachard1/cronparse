@@ -61,6 +61,13 @@ class LockStore:
         del self._locks[expression]
         return True
 
+    def release_all(self, owner: str) -> int:
+        """Release all locks held by *owner*. Returns the number of locks released."""
+        expressions = [e.expression for e in self._locks.values() if e.owner == owner]
+        for expression in expressions:
+            del self._locks[expression]
+        return len(expressions)
+
     def is_locked(self, expression: str) -> bool:
         return expression in self._locks
 
